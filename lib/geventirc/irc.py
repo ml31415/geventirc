@@ -94,15 +94,16 @@ class Client(object):
             except gevent.GreenletExit:
                 raise
             except Exception as e:
-                self.logger.exception("Disconnected from IRC: %s %s", type(e).__name__, str(e))
-                gevent.spawn(self.reconnect)
-            buf += data
-            pos = buf.find("\r\n")
-            while pos >= 0:
-                line = buf[0:pos]
-                self._recv_queue.put(line)
-                buf = buf[pos + 2:]
+                self.logger.exception("Disconnected: %s %s", type(e).__name__, e)
+                return gevent.spawn(self.reconnect)
+            else:
+                buf += data
                 pos = buf.find("\r\n")
+                while pos >= 0:
+                    line = buf[0:pos]
+                    self._recv_queue.put(line)
+                    buf = buf[pos + 2:]
+                    pos = buf.find("\r\n")
 
     def _send_loop(self):
         while 1:
@@ -121,9 +122,8 @@ class Client(object):
             try:
                 self._socket.sendall(enc_cmd)
             except Exception as e:
-                self.logger.exception("Client._send_loop failed")
-                gevent.spawn(self.reconnect)
-                return
+                self.logger.exception("Client._send_loop failed: %s %s", type(e).__name__, e)
+                return gevent.spawn(self.reconnect)
 
     def _process_loop(self):
         while 1:
@@ -143,7 +143,7 @@ class Client(object):
             self._socket = None
 
     def reconnect(self, delay=1, flush=True):
-        self.logger.info("Shutdown for reconnect")
+        self.logger.info("Reconnecting")
         self.stop()
         self.join()
         if flush:
