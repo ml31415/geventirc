@@ -2,3 +2,8 @@
 *.so
 *.pyc
 *.egg-info
+.project
+.pydevproject
+build/
+dist/
+__pycache__
